@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能日记本</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>📝 智能日记本</h1>
+
+<div class="input-group">
+  <label>内容分类</label>
+  <select id="category">
+    <option value="日记">日记</option>
+    <option value="笔记">笔记</option>
+    <option value="待办">待办</option>
+    <option value="灵感">灵感</option>
+    <option value="其他">其他</option>
+  </select>
+</div>
+
+<div class="input-group">
+  <label>输入内容</label>
+  <textarea id="content" rows="6" placeholder="写下你的想法..."></textarea>
+</div>
+
+<button id="saveBtn">💾 保存</button>
+<button id="exportBtn">📤 导出今日</button>
+
+<div id="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
