@@ -105,3 +105,46 @@ button:hover {
     padding: 10px;
   }
 }
+
+/* 标签页 */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 5px;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  color: white;
+}
+
+/* 面板 */
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* 布局 */
+.flex {
+  display: flex;
+  gap: 10px;
+}
+
+.small {
+  width: 40px;
+  padding: 10px;
+  font-size: 18px;
+}

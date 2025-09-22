@@ -133,6 +133,203 @@ openDB().then(() => {
   showStatus('⚠️ 数据库打开失败：' + err.message, true);
 });
 
+// ======== 修改：升级数据库版本，新增 finance 存储 =========
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('DiaryDB', 2); // 升级版本号
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+
+    request.onupgradeneeded = (event) => {
+      db = event.target.result;
+
+      // 原有 entries 表
+      if (!db.objectStoreNames.contains('entries')) {
+        const store = db.createObjectStore('entries', { keyPath: ['date', 'category'] });
+        store.createIndex('date', 'date', { unique: false });
+      }
+
+      // 新增：记账类别表
+      if (!db.objectStoreNames.contains('financeCategories')) {
+        const catStore = db.createObjectStore('financeCategories', { keyPath: 'id', autoIncrement: true });
+        catStore.add({ name: '餐饮' });
+        catStore.add({ name: '交通' });
+        catStore.add({ name: '工资' });
+        catStore.add({ name: '娱乐' });
+        catStore.add({ name: '购物' });
+      }
+
+      // 新增：记账记录表
+      if (!db.objectStoreNames.contains('financeRecords')) {
+        const recordStore = db.createObjectStore('financeRecords', { keyPath: 'id', autoIncrement: true });
+        recordStore.createIndex('date', 'date', { unique: false });
+      }
+    };
+  });
+}
+// ======== 记账类别操作 =========
+async function loadFinanceCategories() {
+  await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction('financeCategories', 'readonly');
+    const store = tx.objectStore('financeCategories');
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+  });
+}
+
+async function addFinanceCategory(name) {
+  if (!name || name.trim() === '') return;
+  await openDB();
+  const tx = db.transaction('financeCategories', 'readwrite');
+  const store = tx.objectStore('financeCategories');
+  store.add({ name: name.trim() });
+  return tx.done;
+}
+
+async function deleteFinanceCategory(id) {
+  await openDB();
+  const tx = db.transaction('financeCategories', 'readwrite');
+  const store = tx.objectStore('financeCategories');
+  store.delete(id);
+  return tx.done;
+}
+async function saveFinanceRecord(category, amount, note) {
+  await openDB();
+  const tx = db.transaction('financeRecords', 'readwrite');
+  const store = tx.objectStore('financeRecords');
+
+  const record = {
+    date: getToday(),
+    category,
+    amount: parseFloat(amount),
+    note: note || '',
+    timestamp: Date.now()
+  };
+
+  store.add(record);
+  return tx.done;
+}
+
+async function loadFinanceRecords(date) {
+  await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction('financeRecords', 'readonly');
+    const store = tx.objectStore('financeRecords');
+    const index = store.index('date');
+    const request = index.getAll(date);
+
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+  });
+}
+
+// ======== 标签页切换 ========
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+    btn.classList.add('active');
+    const tab = btn.getAttribute('data-tab');
+    document.getElementById(tab + '-panel').classList.add('active');
+  });
+});
+
+// ======== 记账类别管理 ========
+const financeCategorySelect = document.getElementById('financeCategory');
+const addCategoryBtn = document.getElementById('addCategoryBtn');
+
+async function renderFinanceCategories() {
+  const cats = await loadFinanceCategories();
+  financeCategorySelect.innerHTML = '';
+  cats.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat.name;
+    option.textContent = cat.name;
+    financeCategorySelect.appendChild(option);
+  });
+}
+
+// 初始化类别
+openDB().then(() => {
+  renderFinanceCategories();
+}).catch(err => {
+  showStatus('⚠️ 数据库打开失败：' + err.message, true);
+});
+
+// 添加新类别
+addCategoryBtn.addEventListener('click', async () => {
+  const name = prompt('请输入新的记账类别：');
+  if (name) {
+    await addFinanceCategory(name);
+    renderFinanceCategories();
+    showStatus(`✅ 已添加类别：${name}`);
+  }
+});
+
+// ======== 保存记账 ========
+document.getElementById('saveFinanceBtn').addEventListener('click', async () => {
+  const category = document.getElementById('financeCategory').value;
+  const amount = document.getElementById('amount').value;
+  const note = document.getElementById('financeNote').value.trim();
+
+  if (!amount || parseFloat(amount) <= 0) {
+    showStatus('❌ 请输入正确的金额！', true);
+    return;
+  }
+
+  try {
+    await saveFinanceRecord(category, amount, note);
+    document.getElementById('amount').value = '';
+    document.getElementById('financeNote').value = '';
+    showStatus('💰 记账成功！');
+  } catch (err) {
+    showStatus('❌ 记账失败：' + err.message, true);
+  }
+});
+
+// ======== 导出记账数据 ========
+document.getElementById('exportFinanceBtn').addEventListener('click', async () => {
+  const date = getToday();
+  const records = await loadFinanceRecords(date);
+
+  if (records.length === 0) {
+    showStatus('📭 今天还没有记账哦~', true);
+    return;
+  }
+
+  let content = `# ${date} 记账明细\n\n`;
+  let total = 0;
+
+  records.forEach(r => {
+    total += r.amount;
+    content += `[${r.category}] ¥${r.amount.toFixed(2)}  ${r.note || ''}\n`;
+  });
+
+  content += `\n总计：¥${total.toFixed(2)}\n`;
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `记账_${date}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showStatus('📊 已导出今日记账！');
+});
+
+
+
 
 // ======== 语音输入金额 =========
 function initVoiceInput() {

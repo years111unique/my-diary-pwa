@@ -10,6 +10,11 @@
 <body>
 
 <h1>📝 智能日记本</h1>
+<!-- 切换标签 -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="record">📝 记录</button>
+  <button class="tab-btn" data-tab="finance">💰 记账</button>
+</div>
 
 <div class="input-group">
   <label>内容分类</label>
@@ -25,9 +30,72 @@
 <div class="input-group">
   <label>输入内容</label>
   <textarea id="content" rows="6" placeholder="写下你的想法..."></textarea>
+</div
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能日记本</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>📝 智能日记本</h1>
+
+<!-- 切换标签 -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="record">📝 记录</button>
+  <button class="tab-btn" data-tab="finance">💰 记账</button>
 </div>
 
-<!-- 在记账面板中添加 -->
+<!-- 记录面板 -->
+<div id="record-panel" class="panel active">
+  <div class="input-group">
+    <label>内容分类</label>
+    <select id="category">
+      <option value="日记">日记</option>
+      <option value="笔记">笔记</option>
+      <option value="待办">待办</option>
+      <option value="灵感">灵感</option>
+      <option value="其他">其他</option>
+    </select>
+  </div>
+
+  <div class="input-group">
+    <label>输入内容</label>
+    <textarea id="content" rows="6" placeholder="写下你的想法..."></textarea>
+  </div>
+
+  <button id="saveBtn">💾 保存</button>
+  <button id="exportBtn">📤 导出今日</button>
+</div>
+
+<!-- 记账面板 -->
+<div id="finance-panel" class="panel">
+  <div class="input-group">
+    <label>记账类别</label>
+    <div class="flex">
+      <select id="financeCategory">
+        <!-- 动态加载 -->
+      </select>
+      <button id="addCategoryBtn" class="small">➕</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <label>金额（元）</label>
+    <input type="number" id="amount" step="0.01" placeholder="输入金额" />
+  </div>
+
+  <div class="input-group">
+    <label>备注</label>
+    <textarea id="financeNote" rows="3" placeholder="如：午餐、地铁"></textarea>
+  </div>
+  
+  <!-- 在记账面板中添加 -->
 <div class="input-group">
   <label>金额（元）</label>
   <div class="flex">
@@ -49,6 +117,12 @@
 </div>
 <button id="saveBtn">💾 保存</button>
 <button id="exportBtn">📤 导出今日</button>
+
+  <button id="saveFinanceBtn">💰 记一笔</button>
+  <button id="exportFinanceBtn">📊 导出今日记账</button>
+</div>
+
+
 
 <div id="status"></div>
 
