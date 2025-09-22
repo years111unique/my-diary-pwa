@@ -132,3 +132,192 @@ openDB().then(() => {
 }).catch(err => {
   showStatus('⚠️ 数据库打开失败：' + err.message, true);
 });
+
+
+// ======== 语音输入金额 =========
+function initVoiceInput() {
+  const voiceBtn = document.getElementById('voiceBtn');
+  const amountInput = document.getElementById('amount');
+
+  // 检查浏览器是否支持 Web Speech API
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+    voiceBtn.disabled = true;
+    voiceBtn.title = '浏览器不支持语音识别';
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'zh-CN';
+  recognition.interimResults = false;
+
+  let isListening = false;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    // 提取数字（支持“一百二十五”、“125”等）
+    const number = extractNumberFromText(transcript);
+    if (number !== null) {
+      amountInput.value = number;
+      showStatus(`✅ 识别金额：¥${number}`);
+    } else {
+      showStatus(`❌ 未识别到有效金额：${transcript}`, true);
+    }
+  };
+
+  recognition.onerror = (event) => {
+    showStatus(`❌ 语音识别错误：${event.error}`, true);
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    voiceBtn.textContent = '🎤';
+  };
+
+  voiceBtn.addEventListener('click', () => {
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+    recognition.start();
+    isListening = true;
+    voiceBtn.textContent = '🛑';
+  });
+}
+
+// 简单的中文数字识别（可扩展）
+function extractNumberFromText(text) {
+  // 先尝试直接匹配阿拉伯数字
+  const numMatch = text.match(/(\d+(\.\d+)?)/);
+  if (numMatch) return parseFloat(numMatch[1]);
+
+  // 简单中文数字映射（可扩展）
+  const chineseToNum = {
+    '零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
+    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10
+  };
+
+  // 示例：支持“一百二十五”
+  let result = 0;
+  if (text.includes('百')) {
+    const bai = text.split('百')[0].replace(/.*?([一二三四五六七八九])/g, '$1');
+    result += (chineseToNum[bai] || 1) * 100;
+    text = text.split('百')[1];
+  }
+  if (text.includes('十')) {
+    const shi = text.split('十')[0] || '';
+    result += (chineseToNum[shi] || 1) * 10;
+    text = text.split('十')[1] || '';
+  }
+  const ge = text.replace(/[^一二三四五六七八九]/g, '');
+  if (ge && chineseToNum[ge]) result += chineseToNum[ge];
+
+  return result || null;
+}
+
+// 初始化语音
+initVoiceInput();
+
+// ======== 统计与图表 =========
+let financeChart = null;
+
+async function renderChartAndStats() {
+  const records = await loadAllFinanceRecords();
+  const today = getToday();
+
+  // 按日期分组
+  const dailyData = {};
+  records.forEach(r => {
+    if (!dailyData[r.date]) dailyData[r.date] = 0;
+    dailyData[r.date] += r.amount;
+  });
+
+  // 计算本周、本月
+  const todayDate = new Date();
+  const weekStart = new Date(todayDate);
+  weekStart.setDate(todayDate.getDate() - todayDate.getDay()); // 周日开始
+  const monthStart = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+
+  let weekTotal = 0, monthTotal = 0;
+  Object.keys(dailyData).forEach(date => {
+    const dateObj = new Date(date);
+    if (dateObj >= weekStart) weekTotal += dailyData[date];
+    if (dateObj >= monthStart) monthTotal += dailyData[date];
+  });
+
+  // 更新统计
+  document.getElementById('todayTotal').textContent = `¥${(dailyData[today] || 0).toFixed(2)}`;
+  document.getElementById('weekTotal').textContent = `¥${weekTotal.toFixed(2)}`;
+  document.getElementById('monthTotal').textContent = `¥${monthTotal.toFixed(2)}`;
+
+  // 准备图表数据（最近7天）
+  const labels = [];
+  const data = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    labels.push(dateStr);
+    data.push(dailyData[dateStr] || 0);
+  }
+
+  // 渲染图表
+  const ctx = document.getElementById('financeChart').getContext('2d');
+  if (financeChart) financeChart.destroy();
+
+  financeChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '每日支出 (¥)',
+        data: data,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (context) => `¥${context.raw.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: '金额 (¥)' }
+        }
+      }
+    }
+  });
+}
+
+// 加载所有记账记录
+async function loadAllFinanceRecords() {
+  await openDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction('financeRecords', 'readonly');
+    const store = tx.objectStore('financeRecords');
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+  });
+}
+
+// 在记账保存后刷新图表
+document.getElementById('saveFinanceBtn').addEventListener('click', async () => {
+  // ...原有保存逻辑...
+  setTimeout(renderChartAndStats, 500); // 延迟刷新图表
+});
+
+// 页面加载完成后渲染图表
+window.addEventListener('load', () => {
+  setTimeout(renderChartAndStats, 1000);
+});
