@@ -27,11 +27,33 @@
   <textarea id="content" rows="6" placeholder="写下你的想法..."></textarea>
 </div>
 
+<!-- 在记账面板中添加 -->
+<div class="input-group">
+  <label>金额（元）</label>
+  <div class="flex">
+    <input type="number" id="amount" step="0.01" placeholder="输入金额" />
+    <button id="voiceBtn" class="small">🎤</button>
+  </div>
+</div>
+
+<!-- 图表容器 -->
+<div class="chart-container">
+  <canvas id="financeChart"></canvas>
+</div>
+
+<!-- 统计信息 -->
+<div class="stats">
+  <p>今日支出：<span id="todayTotal">¥0.00</span></p>
+  <p>本周支出：<span id="weekTotal">¥0.00</span></p>
+  <p>本月支出：<span id="monthTotal">¥0.00</span></p>
+</div>
 <button id="saveBtn">💾 保存</button>
 <button id="exportBtn">📤 导出今日</button>
 
 <div id="status"></div>
 
 <script src="app.js"></script>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>

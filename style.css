@@ -54,3 +54,54 @@ button:hover {
   border-radius: 6px;
   display: none;
 }
+.chart-container {
+  margin: 20px 0;
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stats {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f1f8ff;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stats {
+    background: #2a2a3a;
+  }
+}
+
+/* 深色模式 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #121212;
+    color: #e0e0e0;
+  }
+  input, textarea, select {
+    background: #2c2c2c;
+    color: #e0e0e0;
+    border: 1px solid #444;
+  }
+  .tabs {
+    border-bottom: 1px solid #444;
+  }
+  .tab-btn {
+    background: #1e1e1e;
+  }
+  .tab-btn.active {
+    background: #0d6efd;
+  }
+  #status {
+    background: #2a4d2a;
+  }
+  .chart-container {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 10px;
+  }
+}
